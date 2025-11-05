@@ -1,0 +1,144 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+body {
+    overflow-x: hidden;
+}
+
+.sidebar-gradient {
+    background: linear-gradient(160deg, #1e3a8a 0%, #3b82f6 100%);
+}
+
+.tab-btn.active { 
+    background-color: rgba(255, 255, 255, 0.15); 
+    font-weight: 600; 
+}
+
+#sidebar { 
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 50;
+    overflow-y: auto;
+    transition: transform 0.3s ease-in-out;
+}
+
+#sidebar.hidden { 
+    transform: translateX(-100%); 
+}
+
+.main-content {
+    margin-left: 16rem; /* Sesuai dengan width sidebar */
+    width: calc(100% - 16rem);
+    transition: margin-left 0.3s ease-in-out;
+}
+
+/* Ketika sidebar hidden di mobile */
+#sidebar.hidden + .main-content {
+    margin-left: 0;
+    width: 100%;
+}
+
+.week-nav.active { 
+    background-color: #3b82f6; 
+    color: white; 
+}
+
+.content-section { 
+    display: none; 
+}
+
+.content-section.active { 
+    display: block; 
+}
+
+.progress-bar { 
+    transition: width 0.5s ease-in-out; 
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    height: 0;
+    padding-bottom: 56.25%;
+}
+
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+.pdf-wrapper {
+    position: relative;
+    width: 100%;
+    height: 400px;
+}
+
+.pdf-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+
+.mobile-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+}
+
+.mobile-overlay.active {
+    display: block;
+}
+
+.week-tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+}
+
+.week-tab {
+    display: inline-block;
+    min-width: 140px;
+}
+
+/* Loading spinner */
+.loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    #sidebar:not(.hidden) + .main-content {
+        margin-left: 0;
+    }
+}
