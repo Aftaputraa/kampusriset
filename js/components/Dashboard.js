@@ -5,8 +5,28 @@ import { courseAttendanceService } from '../config/supabase.js';
 class Dashboard {
     static async render() {
         const progress = await courseAttendanceService.getUserCourseProgress();
-        const stats = await courseAttendanceService.getProgressStats();
         const weekData = getWeekData();
+        
+        // Hitung progress berdasarkan data presensi
+        let totalCourses = 0;
+        let completedCourses = 0;
+        
+        // Hitung total course dan yang sudah selesai
+        Object.keys(weekData).forEach(weekId => {
+            const weekMaterials = weekData[weekId]?.materials || [];
+            const weekProgress = progress[weekId] || {};
+            
+            totalCourses += weekMaterials.length;
+            completedCourses += Object.values(weekProgress).filter(Boolean).length;
+        });
+        
+        const percentage = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
+        
+        const stats = {
+            percentage: percentage,
+            completedCourses: completedCourses,
+            totalCourses: totalCourses
+        };
         
         return `
             <div class="max-w-6xl mx-auto">
@@ -82,24 +102,27 @@ class Dashboard {
                     <div class="mt-6 md:mt-8">
                         <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-4 md:mb-6">Roadmap Onboarding</h2>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-5">
-                            ${['Pekan 1','Pekan 2','Pekan 3','Pekan 4','Pekan 5'].map((pekan,i)=>{
-                                const weekNum = i + 1;
+                            ${[1,2,3,4,5].map(weekNum => {
                                 const weekTitle = weekData[weekNum]?.title || 'Materi akan segera tersedia';
-                                const isCompleted = progress['pekan'+weekNum];
-                                const isCurrent = weekNum === 1 && !isCompleted;
-                                const isLocked = weekNum > 1 && !progress['pekan' + (weekNum - 1)];
+                                const weekProgress = progress[weekNum] || {};
+                                const weekMaterials = weekData[weekNum]?.materials || [];
+                                const completedCount = Object.values(weekProgress).filter(Boolean).length;
+                                const totalCount = weekMaterials.length;
+                                const isCompleted = completedCount === totalCount && totalCount > 0;
+                                const isInProgress = completedCount > 0 && completedCount < totalCount;
+                                const isAvailable = weekMaterials.length > 0;
                                 
                                 return `
-                                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 md:p-5 border-2 ${isCompleted?'border-green-400':isCurrent?'border-blue-400':isLocked?'border-gray-200':'border-blue-200'} shadow-sm hover:shadow-md transition-shadow duration-300">
+                                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 md:p-5 border-2 ${isCompleted?'border-green-400':isInProgress?'border-blue-400':isAvailable?'border-blue-200':'border-gray-200'} shadow-sm hover:shadow-md transition-shadow duration-300">
                                     <div class="flex items-center justify-between mb-3 md:mb-4">
-                                        <h3 class="font-bold text-gray-800 text-base md:text-lg">${pekan}</h3>
-                                        <span class="text-lg md:text-xl ${isCompleted?'text-green-600':isCurrent?'text-blue-600':isLocked?'text-gray-400':'text-blue-500'}">
-                                            ${isCompleted?'✓':isCurrent?'⏳':isLocked?'🔒':'📚'}
+                                        <h3 class="font-bold text-gray-800 text-base md:text-lg">Pekan ${weekNum}</h3>
+                                        <span class="text-lg md:text-xl ${isCompleted?'text-green-600':isInProgress?'text-blue-600':isAvailable?'text-blue-500':'text-gray-400'}">
+                                            ${isCompleted?'✓':isInProgress?'⏳':isAvailable?'📚':'🔒'}
                                         </span>
                                     </div>
                                     <p class="text-gray-600 mb-3 md:mb-4 leading-relaxed text-sm md:text-base">${weekTitle}</p>
-                                    <div class="text-xs md:text-sm ${isCompleted?'text-green-600':isCurrent?'text-blue-600':isLocked?'text-gray-500':'text-blue-600'} font-medium">
-                                        ${isCompleted?'✓ Selesai':isCurrent?'⏳ Ongoing':isLocked?'🔒 Terkunci':'📚 Tersedia'}
+                                    <div class="text-xs md:text-sm ${isCompleted?'text-green-600':isInProgress?'text-blue-600':isAvailable?'text-blue-600':'text-gray-500'} font-medium">
+                                        ${isCompleted?'✓ Selesai':isInProgress?`${completedCount}/${totalCount} Selesai`:isAvailable?'📚 Tersedia':'🔒 Terkunci'}
                                     </div>
                                 </div>`;
                             }).join('')}

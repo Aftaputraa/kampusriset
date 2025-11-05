@@ -1,12 +1,14 @@
 import { getWeekData } from '../../data/weekData.js';
-import { courseAttendanceService } from '../config/supabase.js';
+import Auth from '../auth.js'; // Import Auth
 
 class Materi {
     static currentWeek = 1;
     static currentCourseIndex = 0;
+    static currentVideoIndex = 0;
+    static auth = new Auth(); // Gunakan Auth yang sama
 
     static async render() {
-        const progress = await courseAttendanceService.getUserCourseProgress();
+        const progress = await this.auth.getCourseProgress(); // Gunakan auth.getCourseProgress()
         const weekData = getWeekData();
         
         // Ambil semua week yang ada data-nya
@@ -113,7 +115,16 @@ class Materi {
     }
 
     static renderCourseContent(course, weekProgress) {
+        if (!course) {
+            return `
+                <div class="p-8 text-center">
+                    <p class="text-gray-500">Tidak ada course yang tersedia</p>
+                </div>
+            `;
+        }
+
         const isCompleted = weekProgress[course.title] || false;
+        const currentVideo = course.videos[this.currentVideoIndex];
 
         return `
             <!-- Course Header -->
@@ -132,27 +143,40 @@ class Materi {
                 </div>
             </div>
 
-            <!-- Videos Section -->
-            <div class="p-4 md:p-6">
-                <h4 class="font-semibold text-gray-800 mb-4 text-lg">Video Pembelajaran</h4>
-                <div class="space-y-4">
-                    ${course.videos.map((video, index) => `
-                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                            <h5 class="font-medium text-gray-800 mb-3">${video.title}</h5>
-                            <div class="video-wrapper">
-                                <iframe src="${video.url}" 
-                                        frameborder="0" 
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                        allowfullscreen>
-                                </iframe>
-                            </div>
-                        </div>
-                    `).join('')}
+            <!-- Video Player & Navigation -->
+            <div class="bg-black">
+                <div class="video-wrapper-large">
+                    <iframe src="${currentVideo.url}" 
+                            frameborder="0" 
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                            allowfullscreen
+                            id="main-video-player">
+                    </iframe>
+                </div>
+            </div>
+            
+            <!-- Video Info & Navigation -->
+            <div class="p-4 md:p-6 border-b border-gray-200">
+                <h3 class="text-lg md:text-xl font-bold text-gray-900 mb-2">${currentVideo.title}</h3>
+                <p class="text-gray-600 mb-4">Video ${this.currentVideoIndex + 1} dari ${course.videos.length}</p>
+                
+                <!-- Video Navigation -->
+                <div class="flex gap-3">
+                    <button class="video-nav-prev flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            ${this.currentVideoIndex === 0 ? 'disabled' : ''}>
+                        <ion-icon name="chevron-back-outline" class="mr-2"></ion-icon>
+                        Video Sebelumnya
+                    </button>
+                    <button class="video-nav-next flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            ${this.currentVideoIndex === course.videos.length - 1 ? 'disabled' : ''}>
+                        Video Selanjutnya
+                        <ion-icon name="chevron-forward-outline" class="ml-2"></ion-icon>
+                    </button>
                 </div>
             </div>
 
             <!-- Download Section -->
-            <div class="border-t border-gray-200 p-4 md:p-6 bg-blue-50">
+            <div class="border-b border-gray-200 p-4 md:p-6 bg-blue-50">
                 <h4 class="font-semibold text-blue-800 mb-3">Materi Pendukung</h4>
                 <p class="text-blue-700 mb-4 text-sm">${course.description}</p>
                 <div class="flex flex-col sm:flex-row gap-3">
@@ -173,22 +197,22 @@ class Materi {
                 </div>
             </div>
 
-            <!-- Navigation & Actions -->
-            <div class="border-t border-gray-200 p-4 md:p-6">
+            <!-- Course Navigation -->
+            <div class="p-4 md:p-6">
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <button class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed prev-course"
+                    <button class="course-nav-prev flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                             ${this.currentCourseIndex === 0 ? 'disabled' : ''}>
                         <ion-icon name="chevron-back-outline" class="mr-2"></ion-icon>
                         Course Sebelumnya
                     </button>
                     
-                    <button class="flex-1 ${isCompleted ? 'bg-green-600' : 'bg-green-600'} text-white py-3 px-4 rounded-lg hover:bg-green-700 transition font-medium mark-complete"
+                    <button class="mark-complete flex-1 bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition font-medium"
                             data-course-title="${course.title}">
                         <ion-icon name="checkmark-circle-outline" class="mr-2"></ion-icon>
-                        ${isCompleted ? '✓ Sudah Selesai' : 'Tandai Selesai'}
+                        ${isCompleted ? '✓ Sudah Selesai' : 'Tandai Selesai Course'}
                     </button>
                     
-                    <button class="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed next-course"
+                    <button class="course-nav-next flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                             ${this.currentCourseIndex === this.getCurrentWeekData().materials.length - 1 ? 'disabled' : ''}>
                         Course Selanjutnya
                         <ion-icon name="chevron-forward-outline" class="ml-2"></ion-icon>
@@ -202,42 +226,55 @@ class Materi {
         this.setupTabNavigation();
         this.setupCourseNavigation();
         this.setupCourseList();
+        this.setupVideoNavigation();
     }
 
     static setupTabNavigation() {
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', async (e) => {
             if (e.target.closest('.tab-button')) {
                 const tabButton = e.target.closest('.tab-button');
                 const weekId = tabButton.dataset.week;
                 
-                this.switchWeek(weekId);
+                await this.switchWeek(weekId);
             }
         });
     }
 
     static setupCourseNavigation() {
-        document.addEventListener('click', (e) => {
-            if (e.target.closest('.prev-course')) {
-                this.previousCourse();
+        document.addEventListener('click', async (e) => {
+            if (e.target.closest('.course-nav-prev')) {
+                await this.previousCourse();
             }
             
-            if (e.target.closest('.next-course')) {
-                this.nextCourse();
+            if (e.target.closest('.course-nav-next')) {
+                await this.nextCourse();
             }
             
             if (e.target.closest('.mark-complete')) {
-                this.markAsComplete();
+                await this.markAsComplete();
             }
         });
     }
 
     static setupCourseList() {
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', async (e) => {
             if (e.target.closest('.course-item')) {
                 const courseItem = e.target.closest('.course-item');
                 const courseIndex = parseInt(courseItem.dataset.courseIndex);
                 
-                this.switchCourse(courseIndex);
+                await this.switchCourse(courseIndex);
+            }
+        });
+    }
+
+    static setupVideoNavigation() {
+        document.addEventListener('click', async (e) => {
+            if (e.target.closest('.video-nav-prev')) {
+                await this.previousVideo();
+            }
+            
+            if (e.target.closest('.video-nav-next')) {
+                await this.nextVideo();
             }
         });
     }
@@ -245,27 +282,69 @@ class Materi {
     static async switchWeek(weekId) {
         this.currentWeek = weekId;
         this.currentCourseIndex = 0;
+        this.currentVideoIndex = 0;
         
-        // Re-render the component
+        // Re-render the entire component
         const content = await this.render();
         document.getElementById('content').innerHTML = content;
         
-        // Re-initialize
+        // Re-initialize event listeners
         await this.init();
     }
 
-    static switchCourse(courseIndex) {
+    static async switchCourse(courseIndex) {
         this.currentCourseIndex = courseIndex;
+        this.currentVideoIndex = 0;
         
-        // Update course content
+        // Re-render only the course content section
+        await this.rerenderCourseContent();
+    }
+
+    static async switchVideo(videoIndex) {
+        this.currentVideoIndex = videoIndex;
+        await this.rerenderCourseContent();
+    }
+
+    static async previousCourse() {
+        if (this.currentCourseIndex > 0) {
+            await this.switchCourse(this.currentCourseIndex - 1);
+        }
+    }
+
+    static async nextCourse() {
         const weekData = this.getCurrentWeekData();
+        if (this.currentCourseIndex < weekData.materials.length - 1) {
+            await this.switchCourse(this.currentCourseIndex + 1);
+        }
+    }
+
+    static async previousVideo() {
+        if (this.currentVideoIndex > 0) {
+            await this.switchVideo(this.currentVideoIndex - 1);
+        }
+    }
+
+    static async nextVideo() {
+        const currentCourse = this.getCurrentWeekData().materials[this.currentCourseIndex];
+        if (this.currentVideoIndex < currentCourse.videos.length - 1) {
+            await this.switchVideo(this.currentVideoIndex + 1);
+        }
+    }
+
+    static async rerenderCourseContent() {
+        const weekData = this.getCurrentWeekData();
+        const progress = await this.auth.getCourseProgress(); // Gunakan auth.getCourseProgress()
+        const weekProgress = progress[this.currentWeek] || {};
         const currentCourse = weekData.materials[this.currentCourseIndex];
+        
+        // Update course content section
+        const courseContentContainer = document.querySelector('.lg\\:col-span-3 > div');
+        if (courseContentContainer) {
+            courseContentContainer.innerHTML = this.renderCourseContent(currentCourse, weekProgress);
+        }
         
         // Update course list active state
         this.updateCourseList();
-        
-        // Update navigation buttons
-        this.updateNavigationButtons();
         
         // Scroll to top of course content
         const courseContent = document.querySelector('.lg\\:col-span-3');
@@ -274,44 +353,25 @@ class Materi {
         }
     }
 
-    static previousCourse() {
-        if (this.currentCourseIndex > 0) {
-            this.switchCourse(this.currentCourseIndex - 1);
-        }
-    }
-
-    static nextCourse() {
-        const weekData = this.getCurrentWeekData();
-        if (this.currentCourseIndex < weekData.materials.length - 1) {
-            this.switchCourse(this.currentCourseIndex + 1);
-        }
-    }
-
     static async markAsComplete() {
         try {
             const weekData = this.getCurrentWeekData();
             const currentCourse = weekData.materials[this.currentCourseIndex];
             
-            // Save to Supabase
-            await courseAttendanceService.recordCourseCompletion(
+            if (!currentCourse) {
+                throw new Error('Course tidak ditemukan');
+            }
+            
+            // Gunakan method yang sama seperti di Attendance yang sudah berhasil
+            await this.auth.recordCourseCompletion(
                 parseInt(this.currentWeek), 
-                currentCourse.title,
-                { 
-                    completed_at: new Date().toISOString(),
-                    course_data: {
-                        title: currentCourse.title,
-                        videos_count: currentCourse.videos.length,
-                        description: currentCourse.description
-                    }
-                }
+                currentCourse.title
             );
             
             this.showNotification(`"${currentCourse.title}" berhasil ditandai selesai!`, 'success');
             
             // Refresh the component to update progress
-            const content = await this.render();
-            document.getElementById('content').innerHTML = content;
-            await this.init();
+            await this.rerenderCourseContent();
             
         } catch (error) {
             console.error('Error marking as complete:', error);
@@ -322,28 +382,33 @@ class Materi {
     static updateCourseList() {
         const courseItems = document.querySelectorAll('.course-item');
         courseItems.forEach((item, index) => {
+            // Reset classes
+            item.classList.remove('bg-blue-100', 'border-blue-300', 'text-blue-700');
+            item.classList.add('bg-white', 'border-gray-200', 'text-gray-700');
+            
+            // Apply active class if current item
             if (index === this.currentCourseIndex) {
-                item.classList.add('bg-blue-100', 'border-blue-300', 'text-blue-700');
                 item.classList.remove('bg-white', 'border-gray-200', 'text-gray-700');
-            } else {
-                item.classList.remove('bg-blue-100', 'border-blue-300', 'text-blue-700');
-                item.classList.add('bg-white', 'border-gray-200', 'text-gray-700');
+                item.classList.add('bg-blue-100', 'border-blue-300', 'text-blue-700');
+            }
+            
+            // Update the number indicator
+            const indicator = item.querySelector('.w-8');
+            if (indicator) {
+                const isCompleted = item.classList.contains('border-green-200');
+                
+                if (isCompleted) {
+                    indicator.className = 'w-8 h-8 rounded-full flex items-center justify-center !bg-green-500 text-white';
+                    indicator.innerHTML = '✓';
+                } else if (index === this.currentCourseIndex) {
+                    indicator.className = 'w-8 h-8 rounded-full flex items-center justify-center bg-blue-500 text-white';
+                    indicator.innerHTML = (index + 1).toString();
+                } else {
+                    indicator.className = 'w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-600';
+                    indicator.innerHTML = (index + 1).toString();
+                }
             }
         });
-    }
-
-    static updateNavigationButtons() {
-        const weekData = this.getCurrentWeekData();
-        const prevButton = document.querySelector('.prev-course');
-        const nextButton = document.querySelector('.next-course');
-        
-        if (prevButton) {
-            prevButton.disabled = this.currentCourseIndex === 0;
-        }
-        
-        if (nextButton) {
-            nextButton.disabled = this.currentCourseIndex === weekData.materials.length - 1;
-        }
     }
 
     static getCurrentWeekData() {
@@ -373,5 +438,25 @@ class Materi {
         }, 3000);
     }
 }
+
+// Tambahkan CSS untuk video player yang lebih besar
+const style = document.createElement('style');
+style.textContent = `
+    .video-wrapper-large {
+        position: relative;
+        width: 100%;
+        height: 0;
+        padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    }
+    
+    .video-wrapper-large iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+`;
+document.head.appendChild(style);
 
 export default Materi;
